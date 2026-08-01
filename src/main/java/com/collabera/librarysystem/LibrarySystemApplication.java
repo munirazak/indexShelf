@@ -1,5 +1,6 @@
 package com.collabera.librarysystem;
 
+import com.collabera.librarysystem.config.SchemaBootstrap;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -7,6 +8,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class LibrarySystemApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(LibrarySystemApplication.class, args);
+        SpringApplication application = new SpringApplication(LibrarySystemApplication.class);
+        application.addListeners(new SchemaBootstrap());
+        application.run(args);
     }
 }
