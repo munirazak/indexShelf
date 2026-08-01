@@ -5,3 +5,10 @@ CREATE TABLE IF NOT EXISTS borrowers (
     name       VARCHAR(255) NOT NULL,
     email      VARCHAR(255) NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS books (
+    id     VARCHAR(100) PRIMARY KEY,
+    isbn   VARCHAR(20)  NOT NULL UNIQUE,
+    title  VARCHAR(255) NOT NULL,
+    author VARCHAR(255) NOT NULL
+);
