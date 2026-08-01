@@ -4,12 +4,15 @@ import com.collabera.librarysystem.model.Book;
 import com.collabera.librarysystem.service.BookService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -32,5 +35,11 @@ public class BookController {
     @GetMapping
     public ResponseEntity<List<Book>> getAllBooks() {
         return ResponseEntity.ok(bookService.getAllBooks());
+    }
+
+    @PostMapping(value = "/from-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<Book>> readBooksFromFile(@RequestParam("file") MultipartFile file) {
+        List<Book> savedBooks = bookService.readBooksFromFile(file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedBooks);
     }
 }

@@ -1,0 +1,6 @@
+# Format: id|isbn|title|author
+id|isbn|title|author
+BOOK-004|978-0135558577|Core Java Volume I: Fundamentals|Cay S. Horstmann
+BOOK-007|978-0133970777|Fundamental Of Database Systems|Elmasri, Navathe
+BOOK-009|978-9351199250|Core Java: An Integrated Approach|R. Nageswara Rao
+BOOK-012|978-0133795868|Core JavaServer Faces|Cay S. Horstmann, David M. Geary

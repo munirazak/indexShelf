@@ -4,13 +4,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotBlank;
 
 @Entity
-@Table(name = "books", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_books_isbn", columnNames = "isbn")
-})
+@Table(name = "books")
 public class Book {
 
     @Id
