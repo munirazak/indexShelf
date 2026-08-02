@@ -71,7 +71,7 @@ public class BookService {
                     "Borrower with libraryId '" + request.getLibraryId() + "' not found");
         }
 
-        BookCopy copy = bookCopyRepository.findByIdWithDetail(request.getBookId())
+        BookCopy copy = bookCopyRepository.findByIdWithDetailForUpdate(request.getBookId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Book copy with id '" + request.getBookId() + "' not found"));
 
@@ -93,7 +93,7 @@ public class BookService {
                     "Borrower with libraryId '" + request.getLibraryId() + "' not found");
         }
 
-        BookCopy copy = bookCopyRepository.findByIdWithDetail(request.getBookId())
+        BookCopy copy = bookCopyRepository.findByIdWithDetailForUpdate(request.getBookId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Book copy with id '" + request.getBookId() + "' not found"));
 
