@@ -1,6 +1,7 @@
 package com.collabera.librarysystem.controller;
 
 import com.collabera.librarysystem.dto.BookDto;
+import com.collabera.librarysystem.dto.BorrowRequest;
 import com.collabera.librarysystem.service.BookService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -36,6 +37,11 @@ public class BookController {
     public ResponseEntity<List<BookDto>> getBooks(
             @RequestParam(defaultValue = "all") String status) {
         return ResponseEntity.ok(bookService.getBooks(status));
+    }
+
+    @PostMapping("/borrow")
+    public ResponseEntity<BookDto> borrowBook(@Valid @RequestBody BorrowRequest request) {
+        return ResponseEntity.ok(bookService.borrow(request));
     }
 
     @PostMapping(value = "/from-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

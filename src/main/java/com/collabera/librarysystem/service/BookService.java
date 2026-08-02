@@ -1,13 +1,17 @@
 package com.collabera.librarysystem.service;
 
 import com.collabera.librarysystem.dto.BookDto;
+import com.collabera.librarysystem.dto.BorrowRequest;
+import com.collabera.librarysystem.exception.BookNotAvailableException;
 import com.collabera.librarysystem.exception.DuplicateBookException;
 import com.collabera.librarysystem.exception.InvalidBookStatusException;
+import com.collabera.librarysystem.exception.ResourceNotFoundException;
 import com.collabera.librarysystem.model.BookCopy;
 import com.collabera.librarysystem.model.BookDetail;
 import com.collabera.librarysystem.model.BookStatus;
 import com.collabera.librarysystem.repository.BookCopyRepository;
 import com.collabera.librarysystem.repository.BookDetailRepository;
+import com.collabera.librarysystem.repository.BorrowerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,14 +25,17 @@ public class BookService {
 
     private final BookDetailRepository bookDetailRepository;
     private final BookCopyRepository bookCopyRepository;
+    private final BorrowerRepository borrowerRepository;
     private final BookFileReader bookFileReader;
 
     public BookService(
             BookDetailRepository bookDetailRepository,
             BookCopyRepository bookCopyRepository,
+            BorrowerRepository borrowerRepository,
             BookFileReader bookFileReader) {
         this.bookDetailRepository = bookDetailRepository;
         this.bookCopyRepository = bookCopyRepository;
+        this.borrowerRepository = borrowerRepository;
         this.bookFileReader = bookFileReader;
     }
 
@@ -52,8 +59,30 @@ public class BookService {
     public List<BookDto> getBooks(String statusFilter) {
         List<BookCopy> copies = findCopiesByStatusFilter(statusFilter);
         return copies.stream()
-                .map(copy -> toDto(copy, copy.getBookDetail()))
+                .map(copy -> toDto(copy, copy.getBookDetail(), false))
                 .toList();
+    }
+
+    @Transactional
+    public BookDto borrow(BorrowRequest request) {
+        if (!borrowerRepository.existsByLibraryId(request.getLibraryId())) {
+            throw new ResourceNotFoundException(
+                    "Borrower with libraryId '" + request.getLibraryId() + "' not found");
+        }
+
+        BookCopy copy = bookCopyRepository.findByIdWithDetail(request.getBookId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Book copy with id '" + request.getBookId() + "' not found"));
+
+        if (copy.getStatus() != BookStatus.AVAILABLE) {
+            throw new BookNotAvailableException(
+                    "Book copy with id '" + request.getBookId() + "' is not available");
+        }
+
+        copy.setLibraryId(request.getLibraryId());
+        copy.setStatus(BookStatus.OCCUPIED);
+        BookCopy saved = bookCopyRepository.save(copy);
+        return toDto(saved, saved.getBookDetail());
     }
 
     @Transactional
@@ -88,11 +117,16 @@ public class BookService {
     }
 
     private BookDto toDto(BookCopy copy, BookDetail detail) {
+        return toDto(copy, detail, true);
+    }
+
+    private BookDto toDto(BookCopy copy, BookDetail detail, boolean includeLibraryId) {
         return new BookDto(
                 copy.getId(),
                 detail.getIsbn(),
                 detail.getTitle(),
                 detail.getAuthor(),
-                copy.getStatus());
+                copy.getStatus(),
+                includeLibraryId ? copy.getLibraryId() : null);
     }
 }

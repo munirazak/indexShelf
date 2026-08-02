@@ -91,6 +91,6 @@ public class BookFileReader {
                             + ": id, isbn, title, and author are required");
         }
 
-        return new BookDto(id, isbn, title, author, BookStatus.AVAILABLE);
+        return new BookDto(id, isbn, title, author, BookStatus.AVAILABLE, null);
     }
 }

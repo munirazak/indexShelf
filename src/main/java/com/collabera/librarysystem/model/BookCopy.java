@@ -28,6 +28,9 @@ public class BookCopy {
     @Column(name = "status", nullable = false, length = 20)
     private BookStatus status = BookStatus.AVAILABLE;
 
+    @Column(name = "library_id", length = 100)
+    private String libraryId;
+
     public BookCopy() {
     }
 
@@ -59,5 +62,13 @@ public class BookCopy {
 
     public void setStatus(BookStatus status) {
         this.status = status;
+    }
+
+    public String getLibraryId() {
+        return libraryId;
+    }
+
+    public void setLibraryId(String libraryId) {
+        this.libraryId = libraryId;
     }
 }

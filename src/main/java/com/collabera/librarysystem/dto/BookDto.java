@@ -1,6 +1,7 @@
 package com.collabera.librarysystem.dto;
 
 import com.collabera.librarysystem.model.BookStatus;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
 
 public class BookDto {
@@ -19,15 +20,19 @@ public class BookDto {
 
     private BookStatus status;
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String libraryId;
+
     public BookDto() {
     }
 
-    public BookDto(String id, String isbn, String title, String author, BookStatus status) {
+    public BookDto(String id, String isbn, String title, String author, BookStatus status, String libraryId) {
         this.id = id;
         this.isbn = isbn;
         this.title = title;
         this.author = author;
         this.status = status;
+        this.libraryId = libraryId;
     }
 
     public String getId() {
@@ -68,5 +73,13 @@ public class BookDto {
 
     public void setStatus(BookStatus status) {
         this.status = status;
+    }
+
+    public String getLibraryId() {
+        return libraryId;
+    }
+
+    public void setLibraryId(String libraryId) {
+        this.libraryId = libraryId;
     }
 }
