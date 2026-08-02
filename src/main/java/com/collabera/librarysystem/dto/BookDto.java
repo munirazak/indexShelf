@@ -1,40 +1,33 @@
-package com.collabera.librarysystem.model;
+package com.collabera.librarysystem.dto;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.collabera.librarysystem.model.BookStatus;
 import jakarta.validation.constraints.NotBlank;
 
-@Entity
-@Table(name = "books")
-public class Book {
+public class BookDto {
 
-    @Id
     @NotBlank(message = "id is required")
-    @Column(name = "id", nullable = false, length = 100)
     private String id;
 
     @NotBlank(message = "isbn is required")
-    @Column(name = "isbn", nullable = false, length = 20)
     private String isbn;
 
     @NotBlank(message = "title is required")
-    @Column(name = "title", nullable = false, length = 255)
     private String title;
 
     @NotBlank(message = "author is required")
-    @Column(name = "author", nullable = false, length = 255)
     private String author;
 
-    public Book() {
+    private BookStatus status;
+
+    public BookDto() {
     }
 
-    public Book(String id, String isbn, String title, String author) {
+    public BookDto(String id, String isbn, String title, String author, BookStatus status) {
         this.id = id;
         this.isbn = isbn;
         this.title = title;
         this.author = author;
+        this.status = status;
     }
 
     public String getId() {
@@ -67,5 +60,13 @@ public class Book {
 
     public void setAuthor(String author) {
         this.author = author;
+    }
+
+    public BookStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(BookStatus status) {
+        this.status = status;
     }
 }

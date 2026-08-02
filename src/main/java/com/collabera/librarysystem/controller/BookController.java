@@ -1,6 +1,6 @@
 package com.collabera.librarysystem.controller;
 
-import com.collabera.librarysystem.model.Book;
+import com.collabera.librarysystem.dto.BookDto;
 import com.collabera.librarysystem.service.BookService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -27,19 +27,19 @@ public class BookController {
     }
 
     @PostMapping
-    public ResponseEntity<Book> registerBook(@Valid @RequestBody Book book) {
-        Book registered = bookService.register(book);
+    public ResponseEntity<BookDto> registerBook(@Valid @RequestBody BookDto book) {
+        BookDto registered = bookService.register(book);
         return ResponseEntity.status(HttpStatus.CREATED).body(registered);
     }
 
     @GetMapping
-    public ResponseEntity<List<Book>> getAllBooks() {
+    public ResponseEntity<List<BookDto>> getAllBooks() {
         return ResponseEntity.ok(bookService.getAllBooks());
     }
 
     @PostMapping(value = "/from-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<List<Book>> readBooksFromFile(@RequestParam("file") MultipartFile file) {
-        List<Book> savedBooks = bookService.readBooksFromFile(file);
+    public ResponseEntity<List<BookDto>> readBooksFromFile(@RequestParam("file") MultipartFile file) {
+        List<BookDto> savedBooks = bookService.readBooksFromFile(file);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedBooks);
     }
 }

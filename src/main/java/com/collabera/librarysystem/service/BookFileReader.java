@@ -1,7 +1,8 @@
 package com.collabera.librarysystem.service;
 
+import com.collabera.librarysystem.dto.BookDto;
 import com.collabera.librarysystem.exception.InvalidBookFileException;
-import com.collabera.librarysystem.model.Book;
+import com.collabera.librarysystem.model.BookStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,10 +20,10 @@ public class BookFileReader {
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(".txt", ".dat");
     private static final String DELIMITER = "\\|";
 
-    public List<Book> read(MultipartFile file) {
+    public List<BookDto> read(MultipartFile file) {
         validateFile(file);
 
-        List<Book> books = new ArrayList<>();
+        List<BookDto> books = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
 
@@ -71,7 +72,7 @@ public class BookFileReader {
         return normalized.equals("id|isbn|title|author");
     }
 
-    private Book parseLine(String line, int lineNumber) {
+    private BookDto parseLine(String line, int lineNumber) {
         String[] parts = line.split(DELIMITER, -1);
         if (parts.length != 4) {
             throw new InvalidBookFileException(
@@ -90,6 +91,6 @@ public class BookFileReader {
                             + ": id, isbn, title, and author are required");
         }
 
-        return new Book(id, isbn, title, author);
+        return new BookDto(id, isbn, title, author, BookStatus.AVAILABLE);
     }
 }
