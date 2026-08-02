@@ -2,6 +2,7 @@ package com.collabera.librarysystem.service;
 
 import com.collabera.librarysystem.dto.BookDto;
 import com.collabera.librarysystem.exception.DuplicateBookException;
+import com.collabera.librarysystem.exception.InvalidBookStatusException;
 import com.collabera.librarysystem.model.BookCopy;
 import com.collabera.librarysystem.model.BookDetail;
 import com.collabera.librarysystem.model.BookStatus;
@@ -13,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class BookService {
@@ -47,8 +49,9 @@ public class BookService {
         return toDto(copy, detail);
     }
 
-    public List<BookDto> getAllBooks() {
-        return bookCopyRepository.findAllWithDetail().stream()
+    public List<BookDto> getBooks(String statusFilter) {
+        List<BookCopy> copies = findCopiesByStatusFilter(statusFilter);
+        return copies.stream()
                 .map(copy -> toDto(copy, copy.getBookDetail()))
                 .toList();
     }
@@ -61,6 +64,17 @@ public class BookService {
             savedBooks.add(register(book));
         }
         return savedBooks;
+    }
+
+    private List<BookCopy> findCopiesByStatusFilter(String statusFilter) {
+        String normalized = statusFilter == null ? "all" : statusFilter.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "all" -> bookCopyRepository.findAllWithDetail();
+            case "available" -> bookCopyRepository.findAllWithDetailByStatus(BookStatus.AVAILABLE);
+            case "occupied" -> bookCopyRepository.findAllWithDetailByStatus(BookStatus.OCCUPIED);
+            default -> throw new InvalidBookStatusException(
+                    "Invalid status '" + statusFilter + "'. Allowed values: all, available, occupied");
+        };
     }
 
     private BookDetail validateAndReuseDetail(BookDetail existing, BookDto book) {

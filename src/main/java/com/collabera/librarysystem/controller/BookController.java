@@ -33,8 +33,9 @@ public class BookController {
     }
 
     @GetMapping
-    public ResponseEntity<List<BookDto>> getAllBooks() {
-        return ResponseEntity.ok(bookService.getAllBooks());
+    public ResponseEntity<List<BookDto>> getBooks(
+            @RequestParam(defaultValue = "all") String status) {
+        return ResponseEntity.ok(bookService.getBooks(status));
     }
 
     @PostMapping(value = "/from-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
