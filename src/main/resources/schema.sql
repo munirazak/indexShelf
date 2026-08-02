@@ -1,4 +1,4 @@
-CREATE DATABASE kopibru_book_catalogue;
+-- Tables only. Database name comes from spring.datasource.url (via SchemaBootstrap).
 
 CREATE TABLE IF NOT EXISTS borrowers (
     library_id VARCHAR(100) PRIMARY KEY,

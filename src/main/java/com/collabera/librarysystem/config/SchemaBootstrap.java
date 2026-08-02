@@ -13,14 +13,15 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
- * Runs {@code schema.sql} before the app DataSource starts.
- * {@code CREATE DATABASE} is executed against the default {@code postgres} DB
- * when the target database is missing; remaining statements run against the app DB.
+ * Ensures the database from {@code spring.datasource.url} exists, then runs
+ * table DDL from {@code schema.sql} against that database.
  */
 public class SchemaBootstrap implements ApplicationListener<ApplicationEnvironmentPreparedEvent> {
+
+    private static final Pattern SAFE_DB_NAME = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*");
 
     @Override
     public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {
@@ -28,37 +29,39 @@ public class SchemaBootstrap implements ApplicationListener<ApplicationEnvironme
         String jdbcUrl = env.getRequiredProperty("spring.datasource.url");
         String username = env.getRequiredProperty("spring.datasource.username");
         String password = env.getProperty("spring.datasource.password", "");
-        String databaseName = jdbcUrl.substring(jdbcUrl.lastIndexOf('/') + 1).split("\\?")[0];
+
+        String databaseName = extractDatabaseName(jdbcUrl);
+        if (!SAFE_DB_NAME.matcher(databaseName).matches()) {
+            throw new IllegalStateException("Unsafe database name in datasource URL: " + databaseName);
+        }
+
         String adminUrl = jdbcUrl.substring(0, jdbcUrl.lastIndexOf('/') + 1) + "postgres";
 
         try {
-            List<String> createDb = new ArrayList<>();
-            List<String> tables = new ArrayList<>();
-            for (String sql : parseStatements(loadSchemaSql())) {
-                if (sql.toUpperCase(Locale.ROOT).startsWith("CREATE DATABASE")) {
-                    createDb.add(sql);
-                } else {
-                    tables.add(sql);
-                }
-            }
-
-            try (Connection conn = DriverManager.getConnection(adminUrl, username, password);
-                 Statement stmt = conn.createStatement()) {
-                if (!databaseExists(stmt, databaseName)) {
-                    for (String sql : createDb) {
-                        stmt.execute(sql);
-                    }
-                }
-            }
-
-            try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
-                 Statement stmt = conn.createStatement()) {
-                for (String sql : tables) {
-                    stmt.execute(sql);
-                }
-            }
+            ensureDatabaseExists(adminUrl, username, password, databaseName);
+            executeSchemaScript(jdbcUrl, username, password);
         } catch (Exception ex) {
-            throw new IllegalStateException("Failed to run schema.sql", ex);
+            throw new IllegalStateException("Failed to initialize database schema", ex);
+        }
+    }
+
+    private void ensureDatabaseExists(
+            String adminUrl, String username, String password, String databaseName) throws Exception {
+        try (Connection conn = DriverManager.getConnection(adminUrl, username, password);
+             Statement stmt = conn.createStatement()) {
+            if (!databaseExists(stmt, databaseName)) {
+                stmt.execute("CREATE DATABASE " + databaseName);
+            }
+        }
+    }
+
+    private void executeSchemaScript(String jdbcUrl, String username, String password) throws Exception {
+        List<String> statements = parseStatements(loadSchemaSql());
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
+             Statement stmt = conn.createStatement()) {
+            for (String sql : statements) {
+                stmt.execute(sql);
+            }
         }
     }
 
@@ -67,6 +70,15 @@ public class SchemaBootstrap implements ApplicationListener<ApplicationEnvironme
                 "SELECT 1 FROM pg_database WHERE datname = '" + databaseName + "'")) {
             return rs.next();
         }
+    }
+
+    private String extractDatabaseName(String jdbcUrl) {
+        String withoutParams = jdbcUrl.split("\\?", 2)[0];
+        int lastSlash = withoutParams.lastIndexOf('/');
+        if (lastSlash < 0 || lastSlash == withoutParams.length() - 1) {
+            throw new IllegalStateException("Cannot parse database name from JDBC URL: " + jdbcUrl);
+        }
+        return withoutParams.substring(lastSlash + 1);
     }
 
     private String loadSchemaSql() throws Exception {
