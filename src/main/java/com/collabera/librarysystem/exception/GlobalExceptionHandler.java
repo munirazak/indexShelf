@@ -44,6 +44,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 
+    @ExceptionHandler(BookReturnException.class)
+    public ResponseEntity<Map<String, Object>> handleBookReturn(BookReturnException ex) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new HashMap<>();

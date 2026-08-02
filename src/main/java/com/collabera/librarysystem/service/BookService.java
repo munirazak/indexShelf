@@ -3,6 +3,7 @@ package com.collabera.librarysystem.service;
 import com.collabera.librarysystem.dto.BookDto;
 import com.collabera.librarysystem.dto.BorrowRequest;
 import com.collabera.librarysystem.exception.BookNotAvailableException;
+import com.collabera.librarysystem.exception.BookReturnException;
 import com.collabera.librarysystem.exception.DuplicateBookException;
 import com.collabera.librarysystem.exception.InvalidBookStatusException;
 import com.collabera.librarysystem.exception.ResourceNotFoundException;
@@ -80,9 +81,33 @@ public class BookService {
         }
 
         copy.setLibraryId(request.getLibraryId());
-        copy.setStatus(BookStatus.OCCUPIED);
+        copy.setStatus(BookStatus.BORROWED);
         BookCopy saved = bookCopyRepository.save(copy);
         return toDto(saved, saved.getBookDetail());
+    }
+
+    @Transactional
+    public BookDto returnBook(BorrowRequest request) {
+        if (!borrowerRepository.existsByLibraryId(request.getLibraryId())) {
+            throw new ResourceNotFoundException(
+                    "Borrower with libraryId '" + request.getLibraryId() + "' not found");
+        }
+
+        BookCopy copy = bookCopyRepository.findByIdWithDetail(request.getBookId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Book copy with id '" + request.getBookId() + "' not found"));
+
+        if (copy.getStatus() != BookStatus.BORROWED
+                || !request.getLibraryId().equals(copy.getLibraryId())) {
+            throw new BookReturnException(
+                    "Book copy with id '" + request.getBookId()
+                            + "' is not borrowed by libraryId '" + request.getLibraryId() + "'");
+        }
+
+        copy.setLibraryId(null);
+        copy.setStatus(BookStatus.AVAILABLE);
+        BookCopy saved = bookCopyRepository.save(copy);
+        return toDto(saved, saved.getBookDetail(), false);
     }
 
     @Transactional
@@ -100,9 +125,9 @@ public class BookService {
         return switch (normalized) {
             case "all" -> bookCopyRepository.findAllWithDetail();
             case "available" -> bookCopyRepository.findAllWithDetailByStatus(BookStatus.AVAILABLE);
-            case "occupied" -> bookCopyRepository.findAllWithDetailByStatus(BookStatus.OCCUPIED);
+            case "borrowed" -> bookCopyRepository.findAllWithDetailByStatus(BookStatus.BORROWED);
             default -> throw new InvalidBookStatusException(
-                    "Invalid status '" + statusFilter + "'. Allowed values: all, available, occupied");
+                    "Invalid status '" + statusFilter + "'. Allowed values: all, available, borrowed");
         };
     }
 

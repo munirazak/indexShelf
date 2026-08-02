@@ -44,6 +44,11 @@ public class BookController {
         return ResponseEntity.ok(bookService.borrow(request));
     }
 
+    @PostMapping("/return")
+    public ResponseEntity<BookDto> returnBook(@Valid @RequestBody BorrowRequest request) {
+        return ResponseEntity.ok(bookService.returnBook(request));
+    }
+
     @PostMapping(value = "/from-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<List<BookDto>> readBooksFromFile(@RequestParam("file") MultipartFile file) {
         List<BookDto> savedBooks = bookService.readBooksFromFile(file);
