@@ -6,17 +6,45 @@ Spring Boot library management API for borrowers and books (register, search, bo
 
 - Java 17+
 - Maven 3.8+
-- PostgreSQL (e.g. Docker: `library-postgres` on port `5432`)
+- PostgreSQL **or** Docker / Docker Compose
+
+## Why PostgreSQL?
+
+This library system is transactional: borrowers, book copies, and borrow/return must stay consistent. A relational database fits that model well.
+
+PostgreSQL was chosen because:
+
+- **Relational domain** — clear relationships between borrowers, book details, and copies
+- **Strong consistency** — borrow/return need atomic updates so only one member can hold a given copy at a time
+- **Concurrent safety** — row-level locking (`SELECT … FOR UPDATE`) is used when borrowing; PostgreSQL handles this reliably
+- **Spring Boot + Docker fit** — well supported by JPA/Hibernate and easy to run via Docker Compose for local and CI/CD demos
+
+MySQL would also work for this scale. The important choice is a relational store with transactions; PostgreSQL is a solid, common default for that in modern Spring Boot projects.
 
 ## Run
 
+### Option A — Local (Maven)
+
 ```bash
-# Dev profile (default)
+# Dev profile (default) — requires local PostgreSQL
 mvn spring-boot:run
 
 # Prod profile
 mvn spring-boot:run -Dspring-boot.run.profiles=prod
 ```
+
+### Option B — Docker Compose (app + Postgres)
+
+```bash
+docker compose up --build
+```
+
+This starts:
+
+- PostgreSQL on port `5432`
+- Library API on port `8080` (`prod` profile)
+
+Stop with `docker compose down` (add `-v` to also remove the DB volume).
 
 Base URL: `http://localhost:8080`
 
@@ -31,6 +59,19 @@ mvn verify
 ```
 
 Coverage report: `target/site/jacoco/index.html`
+
+### CI/CD (GitHub Actions)
+
+Declarative pipeline in `.github/workflows/ci.yml`:
+
+1. On push/PR to `main`: run `mvn verify` (tests + coverage gate)
+2. On push to `main`: build and publish the Docker image to GitHub Container Registry (`ghcr.io`)
+
+Pull the published image (after a successful push to `main`):
+
+```bash
+docker pull ghcr.io/<your-github-username>/library-system:latest
+```
 
 ### Profiles
 
@@ -242,3 +283,13 @@ Validation errors also include `fieldErrors`.
 | `borrowers` | `library_id`, `name`, `email` |
 | `book_detail` | `isbn`, `title`, `author` |
 | `book_copy` | `id`, `isbn`, `status` (`AVAILABLE` \| `BORROWED`), `library_id` (nullable) |
+
+---
+
+## Containerization & CI/CD (declarative)
+
+| File | Purpose |
+|------|---------|
+| `Dockerfile` | Multi-stage build of the Spring Boot JAR into a runtime image |
+| `docker-compose.yml` | Declares app + Postgres services |
+| `.github/workflows/ci.yml` | CI (test/coverage) and CD (publish image to GHCR) |
