@@ -2,6 +2,8 @@ package com.collabera.librarysystem.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
@@ -12,8 +14,12 @@ import jakarta.validation.constraints.NotBlank;
 public class Borrower {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
     @NotBlank(message = "libraryId is required")
-    @Column(name = "library_id", nullable = false, length = 100)
+    @Column(name = "library_id", nullable = false, unique = true, length = 100)
     private String libraryId;
 
     @NotBlank(message = "name is required")
@@ -32,6 +38,14 @@ public class Borrower {
         this.libraryId = libraryId;
         this.name = name;
         this.email = email;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getLibraryId() {

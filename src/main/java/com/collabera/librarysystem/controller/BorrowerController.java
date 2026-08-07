@@ -1,5 +1,6 @@
 package com.collabera.librarysystem.controller;
 
+import com.collabera.librarysystem.dto.BorrowerRegistrationRequest;
 import com.collabera.librarysystem.model.Borrower;
 import com.collabera.librarysystem.service.BorrowerService;
 import jakarta.validation.Valid;
@@ -24,8 +25,9 @@ public class BorrowerController {
     }
 
     @PostMapping
-    public ResponseEntity<Borrower> registerBorrower(@Valid @RequestBody Borrower borrower) {
-        Borrower registered = borrowerService.register(borrower);
+    public ResponseEntity<Borrower> registerBorrower(
+            @Valid @RequestBody BorrowerRegistrationRequest request) {
+        Borrower registered = borrowerService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(registered);
     }
 

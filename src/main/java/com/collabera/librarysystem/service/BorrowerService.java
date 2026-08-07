@@ -1,9 +1,14 @@
 package com.collabera.librarysystem.service;
 
+import com.collabera.librarysystem.dto.BorrowerRegistrationRequest;
 import com.collabera.librarysystem.exception.DuplicateBorrowerException;
 import com.collabera.librarysystem.model.Borrower;
+import com.collabera.librarysystem.model.BorrowerCredentials;
+import com.collabera.librarysystem.repository.BorrowerCredentialsRepository;
 import com.collabera.librarysystem.repository.BorrowerRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -11,17 +16,37 @@ import java.util.List;
 public class BorrowerService {
 
     private final BorrowerRepository borrowerRepository;
+    private final BorrowerCredentialsRepository borrowerCredentialsRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public BorrowerService(BorrowerRepository borrowerRepository) {
+    public BorrowerService(BorrowerRepository borrowerRepository,
+                           BorrowerCredentialsRepository borrowerCredentialsRepository,
+                           PasswordEncoder passwordEncoder) {
         this.borrowerRepository = borrowerRepository;
+        this.borrowerCredentialsRepository = borrowerCredentialsRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public Borrower register(Borrower borrower) {
-        if (borrowerRepository.existsByLibraryId(borrower.getLibraryId())) {
+    @Transactional
+    public Borrower register(BorrowerRegistrationRequest request) {
+        if (borrowerRepository.existsByLibraryId(request.getLibraryId())) {
             throw new DuplicateBorrowerException(
-                    "Borrower with libraryId '" + borrower.getLibraryId() + "' already exists");
+                    "Borrower with libraryId '" + request.getLibraryId() + "' already exists");
         }
-        return borrowerRepository.save(borrower);
+        if (borrowerCredentialsRepository.existsByUsername(request.getUsername())) {
+            throw new DuplicateBorrowerException(
+                    "Username '" + request.getUsername() + "' is already taken");
+        }
+
+        Borrower borrower = new Borrower(request.getLibraryId(), request.getName(), request.getEmail());
+        Borrower savedBorrower = borrowerRepository.save(borrower);
+
+        String hashedPassword = passwordEncoder.encode(request.getPassword());
+        BorrowerCredentials credentials = new BorrowerCredentials(
+                savedBorrower, request.getUsername(), hashedPassword);
+        borrowerCredentialsRepository.save(credentials);
+
+        return savedBorrower;
     }
 
     public List<Borrower> getAllBorrowers() {
