@@ -12,10 +12,10 @@
     </parent>
 
     <groupId>com.kopibru</groupId>
-    <artifactId>library-system</artifactId>
+    <artifactId>indexShelf</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>library-system</name>
-    <description>Book library system</description>
+    <name>indexShelf</name>
+    <description>IndexShelf book library system</description>
 
     <properties>
         <java.version>17</java.version>

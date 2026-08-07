@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: library-system-db
+    container_name: indexShelf-db
     environment:
       POSTGRES_DB: book_catalogue
       POSTGRES_USER: postgres
@@ -9,7 +9,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - library_pg_data:/var/lib/postgresql/data
+      - indexShelf_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d book_catalogue"]
       interval: 5s
@@ -20,7 +20,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: library-system-app
+    container_name: indexShelf-app
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,8 +31,8 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/book_catalogue
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
-      JWT_SECRET: library-system-jwt-secret-key-32chars-min
+      JWT_SECRET: indexShelf-jwt-secret-key-32chars-min
       JWT_EXPIRATION_MS: "3600000"
 
 volumes:
-  library_pg_data:
+  indexShelf_pg_data:

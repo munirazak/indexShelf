@@ -1,8 +1,8 @@
-# Library System API
+# IndexShelf API
 
 Spring Boot library management API for borrowers and books (register, login, search, borrow, return), with JWT-based authentication.
 
-**Maven coordinates:** `com.kopibru:library-system`  
+**Maven coordinates:** `com.kopibru:indexShelf`  
 **Base package:** `com.kopibru.librarysystem`
 
 ## Prerequisites
@@ -143,7 +143,7 @@ Declarative pipeline in `.github/workflows/ci.yml`:
 Pull the published image (after a successful push to `main`):
 
 ```bash
-docker pull ghcr.io/<your-github-username>/library-system:latest
+docker pull ghcr.io/<your-github-username>/indexshelf:latest
 ```
 
 ### Profiles
