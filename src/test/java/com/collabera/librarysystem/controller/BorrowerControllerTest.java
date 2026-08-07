@@ -1,5 +1,6 @@
 package com.collabera.librarysystem.controller;
 
+import com.collabera.librarysystem.dto.BorrowerRegistrationRequest;
 import com.collabera.librarysystem.exception.DuplicateBorrowerException;
 import com.collabera.librarysystem.exception.GlobalExceptionHandler;
 import com.collabera.librarysystem.model.Borrower;
@@ -37,20 +38,24 @@ class BorrowerControllerTest {
 
     @Test
     void registerBorrower_returnsCreated() throws Exception {
+        BorrowerRegistrationRequest request = new BorrowerRegistrationRequest(
+                "LIB-001", "Alice", "alice@example.com", "alice", "password123");
         Borrower borrower = new Borrower("LIB-001", "Alice", "alice@example.com");
-        when(borrowerService.register(any(Borrower.class))).thenReturn(borrower);
+        borrower.setId(1L);
+        when(borrowerService.register(any(BorrowerRegistrationRequest.class))).thenReturn(borrower);
 
         mockMvc.perform(post("/api/borrowers")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(borrower)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.libraryId").value("LIB-001"));
+                .andExpect(jsonPath("$.libraryId").value("LIB-001"))
+                .andExpect(jsonPath("$.id").value(1));
     }
 
     @Test
     void registerBorrower_returnsBadRequestWhenInvalid() throws Exception {
         String body = """
-                {"libraryId":"","name":"Alice","email":"bad-email"}
+                {"libraryId":"","name":"Alice","email":"bad-email","username":"ab","password":"short"}
                 """;
 
         mockMvc.perform(post("/api/borrowers")
@@ -62,13 +67,14 @@ class BorrowerControllerTest {
 
     @Test
     void registerBorrower_returnsConflictWhenDuplicate() throws Exception {
-        Borrower borrower = new Borrower("LIB-001", "Alice", "alice@example.com");
-        when(borrowerService.register(any(Borrower.class)))
+        BorrowerRegistrationRequest request = new BorrowerRegistrationRequest(
+                "LIB-001", "Alice", "alice@example.com", "alice", "password123");
+        when(borrowerService.register(any(BorrowerRegistrationRequest.class)))
                 .thenThrow(new DuplicateBorrowerException("already exists"));
 
         mockMvc.perform(post("/api/borrowers")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(borrower)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict());
     }
 
