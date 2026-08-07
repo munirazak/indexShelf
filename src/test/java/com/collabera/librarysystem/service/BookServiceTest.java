@@ -124,20 +124,20 @@ class BookServiceTest {
 
     @Test
     void returnBook_throwsWhenBorrowerMissing() {
-        BorrowRequest request = new BorrowRequest("LIB-001", "BOOK-001");
+        BorrowRequest request = new BorrowRequest("BOOK-001");
         when(borrowerRepository.existsByLibraryId("LIB-001")).thenReturn(false);
 
-        assertThatThrownBy(() -> bookService.returnBook(request))
+        assertThatThrownBy(() -> bookService.returnBook("LIB-001", request))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
     void returnBook_throwsWhenBookMissing() {
-        BorrowRequest request = new BorrowRequest("LIB-001", "BOOK-001");
+        BorrowRequest request = new BorrowRequest("BOOK-001");
         when(borrowerRepository.existsByLibraryId("LIB-001")).thenReturn(true);
         when(bookCopyRepository.findByIdWithDetailForUpdate("BOOK-001")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> bookService.returnBook(request))
+        assertThatThrownBy(() -> bookService.returnBook("LIB-001", request))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -164,13 +164,13 @@ class BookServiceTest {
     void borrow_succeedsWhenAvailable() {
         BookDetail detail = new BookDetail("978-1", "Title", "Author");
         BookCopy copy = new BookCopy("BOOK-001", detail, BookStatus.AVAILABLE);
-        BorrowRequest request = new BorrowRequest("LIB-001", "BOOK-001");
+        BorrowRequest request = new BorrowRequest("BOOK-001");
 
         when(borrowerRepository.existsByLibraryId("LIB-001")).thenReturn(true);
         when(bookCopyRepository.findByIdWithDetailForUpdate("BOOK-001")).thenReturn(Optional.of(copy));
         when(bookCopyRepository.save(copy)).thenAnswer(invocation -> invocation.getArgument(0));
 
-        BookDto result = bookService.borrow(request);
+        BookDto result = bookService.borrow("LIB-001", request);
 
         assertThat(result.getStatus()).isEqualTo(BookStatus.BORROWED);
         assertThat(result.getLibraryId()).isEqualTo("LIB-001");
@@ -178,21 +178,21 @@ class BookServiceTest {
 
     @Test
     void borrow_throwsWhenBorrowerMissing() {
-        BorrowRequest request = new BorrowRequest("LIB-001", "BOOK-001");
+        BorrowRequest request = new BorrowRequest("BOOK-001");
         when(borrowerRepository.existsByLibraryId("LIB-001")).thenReturn(false);
 
-        assertThatThrownBy(() -> bookService.borrow(request))
+        assertThatThrownBy(() -> bookService.borrow("LIB-001", request))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("LIB-001");
     }
 
     @Test
     void borrow_throwsWhenBookMissing() {
-        BorrowRequest request = new BorrowRequest("LIB-001", "BOOK-001");
+        BorrowRequest request = new BorrowRequest("BOOK-001");
         when(borrowerRepository.existsByLibraryId("LIB-001")).thenReturn(true);
         when(bookCopyRepository.findByIdWithDetailForUpdate("BOOK-001")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> bookService.borrow(request))
+        assertThatThrownBy(() -> bookService.borrow("LIB-001", request))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("BOOK-001");
     }
@@ -202,12 +202,12 @@ class BookServiceTest {
         BookDetail detail = new BookDetail("978-1", "Title", "Author");
         BookCopy copy = new BookCopy("BOOK-001", detail, BookStatus.BORROWED);
         copy.setLibraryId("LIB-999");
-        BorrowRequest request = new BorrowRequest("LIB-001", "BOOK-001");
+        BorrowRequest request = new BorrowRequest("BOOK-001");
 
         when(borrowerRepository.existsByLibraryId("LIB-001")).thenReturn(true);
         when(bookCopyRepository.findByIdWithDetailForUpdate("BOOK-001")).thenReturn(Optional.of(copy));
 
-        assertThatThrownBy(() -> bookService.borrow(request))
+        assertThatThrownBy(() -> bookService.borrow("LIB-001", request))
                 .isInstanceOf(BookNotAvailableException.class);
     }
 
@@ -216,13 +216,13 @@ class BookServiceTest {
         BookDetail detail = new BookDetail("978-1", "Title", "Author");
         BookCopy copy = new BookCopy("BOOK-001", detail, BookStatus.BORROWED);
         copy.setLibraryId("LIB-001");
-        BorrowRequest request = new BorrowRequest("LIB-001", "BOOK-001");
+        BorrowRequest request = new BorrowRequest("BOOK-001");
 
         when(borrowerRepository.existsByLibraryId("LIB-001")).thenReturn(true);
         when(bookCopyRepository.findByIdWithDetailForUpdate("BOOK-001")).thenReturn(Optional.of(copy));
         when(bookCopyRepository.save(copy)).thenAnswer(invocation -> invocation.getArgument(0));
 
-        BookDto result = bookService.returnBook(request);
+        BookDto result = bookService.returnBook("LIB-001", request);
 
         assertThat(result.getStatus()).isEqualTo(BookStatus.AVAILABLE);
         assertThat(result.getLibraryId()).isNull();
@@ -232,12 +232,12 @@ class BookServiceTest {
     void returnBook_throwsWhenNotBorrowedByBorrower() {
         BookDetail detail = new BookDetail("978-1", "Title", "Author");
         BookCopy copy = new BookCopy("BOOK-001", detail, BookStatus.AVAILABLE);
-        BorrowRequest request = new BorrowRequest("LIB-001", "BOOK-001");
+        BorrowRequest request = new BorrowRequest("BOOK-001");
 
         when(borrowerRepository.existsByLibraryId("LIB-001")).thenReturn(true);
         when(bookCopyRepository.findByIdWithDetailForUpdate("BOOK-001")).thenReturn(Optional.of(copy));
 
-        assertThatThrownBy(() -> bookService.returnBook(request))
+        assertThatThrownBy(() -> bookService.returnBook("LIB-001", request))
                 .isInstanceOf(BookReturnException.class);
     }
 

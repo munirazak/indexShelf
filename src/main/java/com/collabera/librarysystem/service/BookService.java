@@ -65,10 +65,10 @@ public class BookService {
     }
 
     @Transactional
-    public BookDto borrow(BorrowRequest request) {
-        if (!borrowerRepository.existsByLibraryId(request.getLibraryId())) {
+    public BookDto borrow(String libraryId, BorrowRequest request) {
+        if (!borrowerRepository.existsByLibraryId(libraryId)) {
             throw new ResourceNotFoundException(
-                    "Borrower with libraryId '" + request.getLibraryId() + "' not found");
+                    "Borrower with libraryId '" + libraryId + "' not found");
         }
 
         BookCopy copy = bookCopyRepository.findByIdWithDetailForUpdate(request.getBookId())
@@ -80,17 +80,17 @@ public class BookService {
                     "Book copy with id '" + request.getBookId() + "' is not available");
         }
 
-        copy.setLibraryId(request.getLibraryId());
+        copy.setLibraryId(libraryId);
         copy.setStatus(BookStatus.BORROWED);
         BookCopy saved = bookCopyRepository.save(copy);
         return toDto(saved, saved.getBookDetail());
     }
 
     @Transactional
-    public BookDto returnBook(BorrowRequest request) {
-        if (!borrowerRepository.existsByLibraryId(request.getLibraryId())) {
+    public BookDto returnBook(String libraryId, BorrowRequest request) {
+        if (!borrowerRepository.existsByLibraryId(libraryId)) {
             throw new ResourceNotFoundException(
-                    "Borrower with libraryId '" + request.getLibraryId() + "' not found");
+                    "Borrower with libraryId '" + libraryId + "' not found");
         }
 
         BookCopy copy = bookCopyRepository.findByIdWithDetailForUpdate(request.getBookId())
@@ -98,10 +98,10 @@ public class BookService {
                         "Book copy with id '" + request.getBookId() + "' not found"));
 
         if (copy.getStatus() != BookStatus.BORROWED
-                || !request.getLibraryId().equals(copy.getLibraryId())) {
+                || !libraryId.equals(copy.getLibraryId())) {
             throw new BookReturnException(
                     "Book copy with id '" + request.getBookId()
-                            + "' is not borrowed by libraryId '" + request.getLibraryId() + "'");
+                            + "' is not borrowed by libraryId '" + libraryId + "'");
         }
 
         copy.setLibraryId(null);

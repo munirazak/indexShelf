@@ -4,10 +4,12 @@ import com.collabera.librarysystem.dto.BorrowerRegistrationRequest;
 import com.collabera.librarysystem.exception.DuplicateBorrowerException;
 import com.collabera.librarysystem.exception.GlobalExceptionHandler;
 import com.collabera.librarysystem.model.Borrower;
+import com.collabera.librarysystem.security.JwtService;
 import com.collabera.librarysystem.service.BorrowerService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
@@ -24,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(BorrowerController.class)
+@AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
 class BorrowerControllerTest {
 
@@ -35,6 +38,9 @@ class BorrowerControllerTest {
 
     @MockBean
     private BorrowerService borrowerService;
+
+    @MockBean
+    private JwtService jwtService;
 
     @Test
     void registerBorrower_returnsCreated() throws Exception {
