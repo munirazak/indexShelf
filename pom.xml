@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.collabera</groupId>
+    <groupId>com.kopibru</groupId>
     <artifactId>library-system</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>library-system</name>
