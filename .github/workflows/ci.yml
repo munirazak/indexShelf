@@ -8,7 +8,7 @@ on:
 
 env:
   JAVA_VERSION: "17"
-  IMAGE_NAME: library-system
+  IMAGE_NAME: indexshelf
 
 jobs:
   test:

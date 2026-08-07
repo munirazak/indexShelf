@@ -13,7 +13,7 @@ WORKDIR /app
 RUN groupadd -r app && useradd -r -g app app
 USER app
 
-COPY --from=build /app/target/library-system-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/indexShelf-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
 
