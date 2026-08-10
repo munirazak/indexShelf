@@ -5,8 +5,6 @@ import com.kopibru.librarysystem.dto.BorrowRequest;
 import com.kopibru.librarysystem.security.AuthenticationUtils;
 import com.kopibru.librarysystem.service.BookService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,12 +23,6 @@ public class BookController {
 
     public BookController(BookService bookService) {
         this.bookService = bookService;
-    }
-
-    @PostMapping
-    public ResponseEntity<BookDto> registerBook(@Valid @RequestBody BookDto book) {
-        BookDto registered = bookService.register(book);
-        return ResponseEntity.status(HttpStatus.CREATED).body(registered);
     }
 
     @GetMapping
@@ -50,11 +41,5 @@ public class BookController {
     public ResponseEntity<BookDto> returnBook(@Valid @RequestBody BorrowRequest request) {
         String libraryId = AuthenticationUtils.requireLibraryId();
         return ResponseEntity.ok(bookService.returnBook(libraryId, request));
-    }
-
-    @PostMapping(value = "/from-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<List<BookDto>> readBooksFromFile(@RequestParam("file") MultipartFile file) {
-        List<BookDto> savedBooks = bookService.readBooksFromFile(file);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedBooks);
     }
 }

@@ -20,16 +20,6 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    @ExceptionHandler(DuplicateBookException.class)
-    public ResponseEntity<Map<String, Object>> handleDuplicateBook(DuplicateBookException ex) {
-        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
-    }
-
-    @ExceptionHandler(InvalidBookFileException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidBookFile(InvalidBookFileException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
-    }
-
     @ExceptionHandler(InvalidBookStatusException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidBookStatus(InvalidBookStatusException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());

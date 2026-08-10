@@ -1,9 +1,12 @@
 # IndexShelf API
 
-Spring Boot library management API for borrowers and books (register, login, search, borrow, return), with JWT-based authentication.
+Spring Boot library API for borrowers (register, login) and book circulation (search, borrow, return), with JWT-based authentication.
+
+Book **registration / import** lives in the sibling service **BookManagement** (`http://localhost:8081`).
 
 **Maven coordinates:** `com.kopibru:indexShelf`  
-**Base package:** `com.kopibru.librarysystem`
+**Base package:** `com.kopibru.librarysystem`  
+**Port:** `8080`
 
 ## Prerequisites
 
@@ -59,8 +62,8 @@ Assumptions for requirements **not explicitly stated** in the task brief are lis
 | Registration payload | Client sends `libraryId`, `name`, `email`, `username`, and `password` (min 8 chars). |
 | Duplicate book copy id | Registering an existing `book_copy.id` is rejected (`409`). |
 | Book registration payload | Client sends `id`, `isbn`, `title`, and `author` in one request; the system creates/reuses `book_detail` and creates a new `book_copy`. |
-| Default copy status | New copies are `AVAILABLE` unless a status is explicitly provided. |
-| Extra: file import | An optional `POST /api/books/from-file` imports books from `.txt`/`.dat` (`id\|isbn\|title\|author`). Not required by the brief; added for convenience. Requires JWT. |
+| Default copy status | New copies are `AVAILABLE` (created by BookManagement). |
+| Book registration | Handled by **BookManagement** (`POST /api/books`, `POST /api/books/from-file` on port `8081`). |
 
 ### List books
 
@@ -241,55 +244,12 @@ curl http://localhost:8080/api/borrowers \
 
 ## Books
 
-### Register book
+Book **registration** is handled by **BookManagement** (`http://localhost:8081`):
 
-`POST /api/books` (requires JWT)
+- `POST http://localhost:8081/api/books`
+- `POST http://localhost:8081/api/books/from-file`
 
-Creates a `book_detail` (isbn, title, author) if needed, and a `book_copy` (id, status).  
-Same ISBN is allowed only when title and author match an existing detail.
-
-```bash
-curl -X POST http://localhost:8080/api/books \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": "BOOK-001",
-    "isbn": "978-0134685991",
-    "title": "Effective Java",
-    "author": "Joshua Bloch"
-  }'
-```
-
-**Response:** `201 Created`
-
-```json
-{
-  "id": "BOOK-001",
-  "isbn": "978-0134685991",
-  "title": "Effective Java",
-  "author": "Joshua Bloch",
-  "status": "AVAILABLE"
-}
-```
-
-### Import books from file
-
-`POST /api/books/from-file` (requires JWT)
-
-Accepts `.txt` or `.dat` (multipart field: `file`). Format:
-
-```text
-id|isbn|title|author
-BOOK-001|978-0134685991|Effective Java|Joshua Bloch
-```
-
-```bash
-curl -X POST http://localhost:8080/api/books/from-file \
-  -H "Authorization: Bearer <token>" \
-  -F "file=@src/main/resources/sample-books.txt"
-```
-
-**Response:** `201 Created` (list of saved books)
+IndexShelf keeps list / borrow / return against the shared `book_catalogue` database.
 
 ### Search / list books
 
@@ -367,12 +327,12 @@ curl -X POST http://localhost:8080/api/books/return \
 
 ## Typical flow
 
-1. Register a borrower → `POST /api/borrowers`
-2. Login → `POST /api/auth/login` (save the `token`)
-3. Register or import books → `POST /api/books` or `POST /api/books/from-file` (with Bearer token)
-4. List available books → `GET /api/books?status=available`
-5. Borrow → `POST /api/books/borrow` (with Bearer token)
-6. Return → `POST /api/books/return` (with Bearer token)
+1. Register a borrower → `POST http://localhost:8080/api/borrowers`
+2. Login → `POST http://localhost:8080/api/auth/login` (save the `token`)
+3. Register or import books → BookManagement `POST http://localhost:8081/api/books` (or `/from-file`)
+4. List available books → `GET http://localhost:8080/api/books?status=available`
+5. Borrow → `POST http://localhost:8080/api/books/borrow` (with Bearer token)
+6. Return → `POST http://localhost:8080/api/books/return` (with Bearer token)
 
 ---
 

@@ -4,57 +4,30 @@ import com.kopibru.librarysystem.dto.BookDto;
 import com.kopibru.librarysystem.dto.BorrowRequest;
 import com.kopibru.librarysystem.exception.BookNotAvailableException;
 import com.kopibru.librarysystem.exception.BookReturnException;
-import com.kopibru.librarysystem.exception.DuplicateBookException;
 import com.kopibru.librarysystem.exception.InvalidBookStatusException;
 import com.kopibru.librarysystem.exception.ResourceNotFoundException;
 import com.kopibru.librarysystem.model.BookCopy;
 import com.kopibru.librarysystem.model.BookDetail;
 import com.kopibru.librarysystem.model.BookStatus;
 import com.kopibru.librarysystem.repository.BookCopyRepository;
-import com.kopibru.librarysystem.repository.BookDetailRepository;
 import com.kopibru.librarysystem.repository.BorrowerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 @Service
 public class BookService {
 
-    private final BookDetailRepository bookDetailRepository;
     private final BookCopyRepository bookCopyRepository;
     private final BorrowerRepository borrowerRepository;
-    private final BookFileReader bookFileReader;
 
     public BookService(
-            BookDetailRepository bookDetailRepository,
             BookCopyRepository bookCopyRepository,
-            BorrowerRepository borrowerRepository,
-            BookFileReader bookFileReader) {
-        this.bookDetailRepository = bookDetailRepository;
+            BorrowerRepository borrowerRepository) {
         this.bookCopyRepository = bookCopyRepository;
         this.borrowerRepository = borrowerRepository;
-        this.bookFileReader = bookFileReader;
-    }
-
-    @Transactional
-    public BookDto register(BookDto book) {
-        if (bookCopyRepository.existsById(book.getId())) {
-            throw new DuplicateBookException(
-                    "Book copy with id '" + book.getId() + "' already exists");
-        }
-
-        BookDetail detail = bookDetailRepository.findById(book.getIsbn())
-                .map(existing -> validateAndReuseDetail(existing, book))
-                .orElseGet(() -> bookDetailRepository.save(
-                        new BookDetail(book.getIsbn(), book.getTitle(), book.getAuthor())));
-
-        BookStatus status = book.getStatus() != null ? book.getStatus() : BookStatus.AVAILABLE;
-        BookCopy copy = bookCopyRepository.save(new BookCopy(book.getId(), detail, status));
-        return toDto(copy, detail);
     }
 
     public List<BookDto> getBooks(String statusFilter) {
@@ -110,16 +83,6 @@ public class BookService {
         return toDto(saved, saved.getBookDetail(), false);
     }
 
-    @Transactional
-    public List<BookDto> readBooksFromFile(MultipartFile file) {
-        List<BookDto> booksFromFile = bookFileReader.read(file);
-        List<BookDto> savedBooks = new ArrayList<>();
-        for (BookDto book : booksFromFile) {
-            savedBooks.add(register(book));
-        }
-        return savedBooks;
-    }
-
     private List<BookCopy> findCopiesByStatusFilter(String statusFilter) {
         String normalized = statusFilter == null ? "all" : statusFilter.trim().toLowerCase(Locale.ROOT);
         return switch (normalized) {
@@ -129,16 +92,6 @@ public class BookService {
             default -> throw new InvalidBookStatusException(
                     "Invalid status '" + statusFilter + "'. Allowed values: all, available, borrowed");
         };
-    }
-
-    private BookDetail validateAndReuseDetail(BookDetail existing, BookDto book) {
-        if (!existing.getTitle().equals(book.getTitle())
-                || !existing.getAuthor().equals(book.getAuthor())) {
-            throw new DuplicateBookException(
-                    "ISBN '" + book.getIsbn()
-                            + "' already exists with a different title or author");
-        }
-        return existing;
     }
 
     private BookDto toDto(BookCopy copy, BookDetail detail) {
