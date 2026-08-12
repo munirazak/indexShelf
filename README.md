@@ -2,7 +2,7 @@
 
 Spring Boot library API for borrowers (register, login) and book circulation (search, borrow, return), with JWT-based authentication.
 
-Book **registration / import** lives in the sibling service **BookManagement** (`http://localhost:8081`).
+Book **registration / catalog / borrow-return persistence** lives in the sibling service **BookManagement** (`http://localhost:8081`). IndexShelf calls BookManagement over REST for book data.
 
 **Maven coordinates:** `com.kopibru:indexShelf`  
 **Base package:** `com.kopibru.librarysystem`  
@@ -244,12 +244,14 @@ curl http://localhost:8080/api/borrowers \
 
 ## Books
 
-Book **registration** is handled by **BookManagement** (`http://localhost:8081`):
+Book **catalog ownership** is in **BookManagement** (`http://localhost:8081`):
 
-- `POST http://localhost:8081/api/books`
-- `POST http://localhost:8081/api/books/from-file`
+- `POST http://localhost:8081/api/books` — register
+- `POST http://localhost:8081/api/books/from-file` — import
+- `GET http://localhost:8081/api/books` — list (also proxied by IndexShelf)
+- `POST http://localhost:8081/api/books/{bookId}/borrow|return` — used internally by IndexShelf
 
-IndexShelf keeps list / borrow / return against the shared `book_catalogue` database.
+IndexShelf keeps borrower-facing list / borrow / return on port `8080` and delegates book_copy access to BookManagement.
 
 ### Search / list books
 
