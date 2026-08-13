@@ -6,6 +6,8 @@ import com.kopibru.librarysystem.model.Borrower;
 import com.kopibru.librarysystem.model.BorrowerCredentials;
 import com.kopibru.librarysystem.repository.BorrowerCredentialsRepository;
 import com.kopibru.librarysystem.repository.BorrowerRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +16,8 @@ import java.util.List;
 
 @Service
 public class BorrowerService {
+
+    private static final Logger log = LoggerFactory.getLogger(BorrowerService.class);
 
     private final BorrowerRepository borrowerRepository;
     private final BorrowerCredentialsRepository borrowerCredentialsRepository;
@@ -29,6 +33,7 @@ public class BorrowerService {
 
     @Transactional
     public Borrower register(BorrowerRegistrationRequest request) {
+        log.info("Registering borrower libraryId={} username={}", request.getLibraryId(), request.getUsername());
         if (borrowerRepository.existsByLibraryId(request.getLibraryId())) {
             throw new DuplicateBorrowerException(
                     "Borrower with libraryId '" + request.getLibraryId() + "' already exists");
@@ -46,10 +51,14 @@ public class BorrowerService {
                 savedBorrower, request.getUsername(), hashedPassword);
         borrowerCredentialsRepository.save(credentials);
 
+        log.info("Borrower registered id={} libraryId={}", savedBorrower.getId(), savedBorrower.getLibraryId());
         return savedBorrower;
     }
 
     public List<Borrower> getAllBorrowers() {
-        return borrowerRepository.findAll();
+        log.info("Fetching all borrowers");
+        List<Borrower> borrowers = borrowerRepository.findAll();
+        log.info("Fetched {} borrowers", borrowers.size());
+        return borrowers;
     }
 }
