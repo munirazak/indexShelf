@@ -7,4 +7,5 @@ target/
 .vscode/
 *.class
 *.log
+logs/
 .DS_Store
