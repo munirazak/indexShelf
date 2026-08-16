@@ -1,10 +1,10 @@
 package com.kopibru.librarysystem.service;
 
 import com.kopibru.librarysystem.client.BookManagementClient;
+import com.kopibru.librarysystem.client.UserManagementClient;
 import com.kopibru.librarysystem.dto.BookDto;
 import com.kopibru.librarysystem.dto.BorrowRequest;
 import com.kopibru.librarysystem.exception.ResourceNotFoundException;
-import com.kopibru.librarysystem.repository.BorrowerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,13 +17,13 @@ public class BookService {
     private static final Logger log = LoggerFactory.getLogger(BookService.class);
 
     private final BookManagementClient bookManagementClient;
-    private final BorrowerRepository borrowerRepository;
+    private final UserManagementClient userManagementClient;
 
     public BookService(
             BookManagementClient bookManagementClient,
-            BorrowerRepository borrowerRepository) {
+            UserManagementClient userManagementClient) {
         this.bookManagementClient = bookManagementClient;
-        this.borrowerRepository = borrowerRepository;
+        this.userManagementClient = userManagementClient;
     }
 
     public List<BookDto> getBooks(String statusFilter) {
@@ -50,7 +50,7 @@ public class BookService {
     }
 
     private void ensureBorrowerExists(String libraryId) {
-        if (!borrowerRepository.existsByLibraryId(libraryId)) {
+        if (!userManagementClient.existsByLibraryId(libraryId)) {
             throw new ResourceNotFoundException(
                     "Borrower with libraryId '" + libraryId + "' not found");
         }
