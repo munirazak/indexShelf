@@ -8,13 +8,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/borrowers")
@@ -35,13 +32,5 @@ public class BorrowerController {
         Borrower registered = borrowerService.register(request);
         log.info("Borrower registered id={} libraryId={}", registered.getId(), registered.getLibraryId());
         return ResponseEntity.status(HttpStatus.CREATED).body(registered);
-    }
-
-    @GetMapping
-    public ResponseEntity<List<Borrower>> getAllBorrowers() {
-        log.info("GET /api/borrowers");
-        List<Borrower> borrowers = borrowerService.getAllBorrowers();
-        log.info("Returning {} borrowers", borrowers.size());
-        return ResponseEntity.ok(borrowers);
     }
 }

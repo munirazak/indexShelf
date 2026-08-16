@@ -1,25 +1,17 @@
 package com.kopibru.librarysystem.service;
 
+import com.kopibru.librarysystem.client.UserManagementClient;
 import com.kopibru.librarysystem.dto.BorrowerRegistrationRequest;
 import com.kopibru.librarysystem.exception.DuplicateBorrowerException;
 import com.kopibru.librarysystem.model.Borrower;
-import com.kopibru.librarysystem.model.BorrowerCredentials;
-import com.kopibru.librarysystem.repository.BorrowerCredentialsRepository;
-import com.kopibru.librarysystem.repository.BorrowerRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,81 +19,34 @@ import static org.mockito.Mockito.when;
 class BorrowerServiceTest {
 
     @Mock
-    private BorrowerRepository borrowerRepository;
-
-    @Mock
-    private BorrowerCredentialsRepository borrowerCredentialsRepository;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
+    private UserManagementClient userManagementClient;
 
     @InjectMocks
     private BorrowerService borrowerService;
 
     @Test
-    void register_savesBorrowerAndHashedCredentials() {
+    void register_delegatesToUserManagement() {
         BorrowerRegistrationRequest request = new BorrowerRegistrationRequest(
                 "LIB-001", "Alice", "alice@example.com", "alice", "password123");
-        Borrower savedBorrower = new Borrower("LIB-001", "Alice", "alice@example.com");
-        savedBorrower.setId(1L);
-
-        when(borrowerRepository.existsByLibraryId("LIB-001")).thenReturn(false);
-        when(borrowerCredentialsRepository.existsByUsername("alice")).thenReturn(false);
-        when(borrowerRepository.save(any(Borrower.class))).thenReturn(savedBorrower);
-        when(passwordEncoder.encode("password123")).thenReturn("hashed-password");
-        when(borrowerCredentialsRepository.save(any(BorrowerCredentials.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        Borrower registered = new Borrower("LIB-001", "Alice", "alice@example.com");
+        registered.setId(1L);
+        when(userManagementClient.register(request)).thenReturn(registered);
 
         Borrower result = borrowerService.register(request);
 
+        assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getLibraryId()).isEqualTo("LIB-001");
-        verify(borrowerRepository).save(any(Borrower.class));
-
-        ArgumentCaptor<BorrowerCredentials> credentialsCaptor =
-                ArgumentCaptor.forClass(BorrowerCredentials.class);
-        verify(borrowerCredentialsRepository).save(credentialsCaptor.capture());
-        BorrowerCredentials credentials = credentialsCaptor.getValue();
-        assertThat(credentials.getUsername()).isEqualTo("alice");
-        assertThat(credentials.getPassword()).isEqualTo("hashed-password");
-        assertThat(credentials.getBorrower()).isEqualTo(savedBorrower);
-        verify(passwordEncoder).encode("password123");
+        verify(userManagementClient).register(request);
     }
 
     @Test
-    void register_throwsWhenLibraryIdExists() {
+    void register_propagatesDuplicate() {
         BorrowerRegistrationRequest request = new BorrowerRegistrationRequest(
                 "LIB-001", "Alice", "alice@example.com", "alice", "password123");
-        when(borrowerRepository.existsByLibraryId("LIB-001")).thenReturn(true);
+        when(userManagementClient.register(request))
+                .thenThrow(new DuplicateBorrowerException("already exists"));
 
         assertThatThrownBy(() -> borrowerService.register(request))
-                .isInstanceOf(DuplicateBorrowerException.class)
-                .hasMessageContaining("LIB-001");
-        verify(borrowerRepository, never()).save(any());
-        verify(borrowerCredentialsRepository, never()).save(any());
-    }
-
-    @Test
-    void register_throwsWhenUsernameExists() {
-        BorrowerRegistrationRequest request = new BorrowerRegistrationRequest(
-                "LIB-001", "Alice", "alice@example.com", "alice", "password123");
-        when(borrowerRepository.existsByLibraryId("LIB-001")).thenReturn(false);
-        when(borrowerCredentialsRepository.existsByUsername("alice")).thenReturn(true);
-
-        assertThatThrownBy(() -> borrowerService.register(request))
-                .isInstanceOf(DuplicateBorrowerException.class)
-                .hasMessageContaining("alice");
-        verify(borrowerRepository, never()).save(any());
-        verify(borrowerCredentialsRepository, never()).save(any());
-    }
-
-    @Test
-    void getAllBorrowers_returnsList() {
-        when(borrowerRepository.findAll()).thenReturn(List.of(
-                new Borrower("LIB-001", "Alice", "alice@example.com")));
-
-        List<Borrower> result = borrowerService.getAllBorrowers();
-
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getName()).isEqualTo("Alice");
+                .isInstanceOf(DuplicateBorrowerException.class);
     }
 }

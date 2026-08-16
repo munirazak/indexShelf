@@ -16,8 +16,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -85,12 +83,8 @@ class BorrowerControllerTest {
     }
 
     @Test
-    void getAllBorrowers_returnsOk() throws Exception {
-        when(borrowerService.getAllBorrowers()).thenReturn(List.of(
-                new Borrower("LIB-001", "Alice", "alice@example.com")));
-
+    void getAllBorrowers_isNotSupported() throws Exception {
         mockMvc.perform(get("/api/borrowers"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].libraryId").value("LIB-001"));
+                .andExpect(status().isMethodNotAllowed());
     }
 }

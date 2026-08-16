@@ -21,18 +21,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: indexShelf-app
-    depends_on:
-      postgres:
-        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/book_catalogue
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
       JWT_SECRET: indexShelf-jwt-secret-key-32chars-min
       JWT_EXPIRATION_MS: "3600000"
+      BOOKMANAGEMENT_BASE_URL: http://host.docker.internal:8081
+      USERMANAGEMENT_BASE_URL: http://host.docker.internal:8082
 
 volumes:
   indexShelf_pg_data:
