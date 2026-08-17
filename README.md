@@ -16,6 +16,8 @@ Book **registration / catalog / borrow-return persistence** lives in **BookManag
 - Maven 3.8+
 - Running **UserManagement** (port `8082`) and **BookManagement** (port `8081`) for full flows
 
+
+
 ## Why PostgreSQL?
 
 Borrower and book data stay consistent in PostgreSQL, owned by UserManagement and BookManagement. IndexShelf is a JWT-aware API gateway over those services.
@@ -35,72 +37,98 @@ Assumptions for requirements **not explicitly stated** in the task brief are lis
 
 ### Data models
 
-| Topic | Assumption |
-|-------|------------|
-| Borrower primary key | Owned by **UserManagement**. Surrogate `id` (`BIGSERIAL`). Business key `libraryId` remains unique and is supplied by the client on registration. |
-| Borrower credentials | Owned by **UserManagement** (`borrower_credentials`: `username`, BCrypt-hashed `password`), linked to `borrowers.library_id` with `ON DELETE CASCADE`. |
-| Borrower email | Must be present and syntactically valid (`@Email`). Duplicate emails are allowed unless they share the same `libraryId`. |
-| Book unique id | Interpreting “Book” for borrow/return as a **physical copy**. Unique id is `book_copy.id` (string, client-supplied). |
-| ISBN + title + author | Stored once in `book_detail` (ISBN is the primary key of that table). |
-| Multiple copies of same ISBN | Implemented as multiple `book_copy` rows sharing the same ISBN, each with its own unique `id`. |
-| Same ISBN rule | If an ISBN already exists, a new copy is allowed only when title **and** author match the existing `book_detail`; otherwise registration is rejected (`409`). |
-| Different ISBN, same title/author | Allowed — treated as different books (separate `book_detail` rows), per the brief. |
+
+| Topic                             | Assumption                                                                                                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Borrower primary key              | Owned by **UserManagement**. Surrogate `id` (`BIGSERIAL`). Business key `libraryId` remains unique and is supplied by the client on registration.             |
+| Borrower credentials              | Owned by **UserManagement** (`borrower_credentials`: `username`, BCrypt-hashed `password`), linked to `borrowers.library_id` with `ON DELETE CASCADE`.        |
+| Borrower email                    | Must be present and syntactically valid (`@Email`). Duplicate emails are allowed unless they share the same `libraryId`.                                      |
+| Book unique id                    | Interpreting “Book” for borrow/return as a **physical copy**. Unique id is `book_copy.id` (string, client-supplied).                                          |
+| ISBN + title + author             | Stored once in `book_detail` (ISBN is the primary key of that table).                                                                                         |
+| Multiple copies of same ISBN      | Implemented as multiple `book_copy` rows sharing the same ISBN, each with its own unique `id`.                                                                |
+| Same ISBN rule                    | If an ISBN already exists, a new copy is allowed only when title **and** author match the existing `book_detail`; otherwise registration is rejected (`409`). |
+| Different ISBN, same title/author | Allowed — treated as different books (separate `book_detail` rows), per the brief.                                                                            |
+
+
+
 
 ### Auth (JWT)
 
-| Topic | Assumption |
-|-------|------------|
-| Login | IndexShelf `POST /api/auth/login` proxies to UserManagement. JWT subject is `libraryId`. Both services share `JWT_SECRET`. |
-| Password storage | UserManagement hashes passwords with BCrypt; never returned in API responses. |
-| Borrow / return identity | Taken from the JWT (`Authorization: Bearer …`), not from the request body — prevents acting as another borrower. |
-| Public endpoints | `POST /api/auth/login`, `POST /api/borrowers`, `GET /api/books` are unauthenticated. Other IndexShelf endpoints require a valid JWT. `GET /api/borrowers` is **not** served by IndexShelf. |
-| Multiple tokens | Stateless JWTs: logging in again issues a new token; existing unexpired tokens remain valid until `app.jwt.expiration-ms`. |
+
+| Topic                    | Assumption                                                                                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Login                    | IndexShelf `POST /api/auth/login` proxies to UserManagement. JWT subject is `libraryId`. Both services share `JWT_SECRET`.                                                                 |
+| Password storage         | UserManagement hashes passwords with BCrypt; never returned in API responses.                                                                                                              |
+| Borrow / return identity | Taken from the JWT (`Authorization: Bearer …`), not from the request body — prevents acting as another borrower.                                                                           |
+| Public endpoints         | `POST /api/auth/login`, `POST /api/borrowers`, `GET /api/books` are unauthenticated. Other IndexShelf endpoints require a valid JWT. `GET /api/borrowers` is **not** served by IndexShelf. |
+| Multiple tokens          | Stateless JWTs: logging in again issues a new token; existing unexpired tokens remain valid until `app.jwt.expiration-ms`.                                                                 |
+
+
+
 
 ### Register borrower / register book
 
-| Topic | Assumption |
-|-------|------------|
-| Duplicate borrower | Registering an existing `libraryId` or `username` is rejected (`409`) by UserManagement. |
-| Registration payload | Client sends `libraryId`, `name`, `email`, `username`, and `password` (min 8 chars). IndexShelf and UserManagement both accept `POST /api/borrowers`. |
-| List borrowers | Only UserManagement (`GET http://localhost:8082/api/borrowers`, JWT required). |
-| Duplicate book copy id | Registering an existing `book_copy.id` is rejected (`409`). |
-| Book registration payload | Client sends `id`, `isbn`, `title`, and `author` in one request; the system creates/reuses `book_detail` and creates a new `book_copy`. |
-| Default copy status | New copies are `AVAILABLE` (created by BookManagement). |
-| Book registration | Handled by **BookManagement** (`POST /api/books`, `POST /api/books/from-file` on port `8081`). |
+
+| Topic                     | Assumption                                                                                                                                            |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Duplicate borrower        | Registering an existing `libraryId` or `username` is rejected (`409`) by UserManagement.                                                              |
+| Registration payload      | Client sends `libraryId`, `name`, `email`, `username`, and `password` (min 8 chars). IndexShelf and UserManagement both accept `POST /api/borrowers`. |
+| List borrowers            | Only UserManagement (`GET http://localhost:8082/api/borrowers`, JWT required).                                                                        |
+| Duplicate book copy id    | Registering an existing `book_copy.id` is rejected (`409`).                                                                                           |
+| Book registration payload | Client sends `id`, `isbn`, `title`, and `author` in one request; the system creates/reuses `book_detail` and creates a new `book_copy`.               |
+| Default copy status       | New copies are `AVAILABLE` (created by BookManagement).                                                                                               |
+| Book registration         | Handled by **BookManagement** (`POST /api/books`, `POST /api/books/from-file` on port `8081`).                                                        |
+
+
+
 
 ### List books
 
-| Topic | Assumption |
-|-------|------------|
-| “All books” | Means all **copies** (`book_copy`), joined with title/author/ISBN from `book_detail`. |
-| Status filter | Optional query `?status=all\|available\|borrowed` (default `all`). Not required by the brief; added so borrowers can find available copies. |
-| Hide borrower on list | `GET /api/books` does **not** return `libraryId`, even for borrowed copies (privacy / list clarity). |
+
+| Topic                 | Assumption                                                                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| “All books”           | Means all **copies** (`book_copy`), joined with title/author/ISBN from `book_detail`.                                                     |
+| Status filter         | Optional query `?status=all|available|borrowed` (default `all`). Not required by the brief; added so borrowers can find available copies. |
+| Hide borrower on list | `GET /api/books` does **not** return `libraryId`, even for borrowed copies (privacy / list clarity).                                      |
+
+
+
 
 ### Borrow / return (authenticated borrower)
 
-| Topic | Assumption |
-|-------|------------|
-| Required inputs | Body requires only `bookId`. Borrower is the authenticated `libraryId` from the JWT. |
-| Borrower must exist | Unknown `libraryId` (token subject) → `404`. |
-| Book copy must exist | Unknown `bookId` → `404`. |
-| Borrow only if available | Borrow is allowed only when status is `AVAILABLE`; otherwise `409`. |
-| One borrower per copy | A copy stores at most one `library_id` while borrowed; status becomes `BORROWED`. |
-| Concurrent borrows | Pessimistic DB locking ensures only one successful borrow of the same `bookId` at a time. |
-| Return ownership | Return is allowed only if the copy is `BORROWED` **by that same** authenticated `libraryId`; otherwise `409`. |
-| After return | Status set to `AVAILABLE` and `library_id` cleared. |
-| Status naming | Used `AVAILABLE` / `BORROWED` (not specified in the brief). |
+
+| Topic                    | Assumption                                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Required inputs          | Body requires only `bookId`. Borrower is the authenticated `libraryId` from the JWT.                          |
+| Borrower must exist      | Unknown `libraryId` (token subject) → `404`.                                                                  |
+| Book copy must exist     | Unknown `bookId` → `404`.                                                                                     |
+| Borrow only if available | Borrow is allowed only when status is `AVAILABLE`; otherwise `409`.                                           |
+| One borrower per copy    | A copy stores at most one `library_id` while borrowed; status becomes `BORROWED`.                             |
+| Concurrent borrows       | Pessimistic DB locking ensures only one successful borrow of the same `bookId` at a time.                     |
+| Return ownership         | Return is allowed only if the copy is `BORROWED` **by that same** authenticated `libraryId`; otherwise `409`. |
+| After return             | Status set to `AVAILABLE` and `library_id` cleared.                                                           |
+| Status naming            | Used `AVAILABLE` / `BORROWED` (not specified in the brief).                                                   |
+
+
+
 
 ### API & platform (beyond the brief)
 
-| Topic | Assumption |
-|-------|------------|
-| Style | RESTful JSON over HTTP; Spring Boot 3 + Spring Security. |
-| Persistence | IndexShelf has no database. UserManagement and BookManagement use PostgreSQL (`book_catalogue`). |
-| Validation / errors | Bean validation on inputs; consistent JSON error body with appropriate HTTP status codes. |
-| Environments | `dev` / `prod` Spring profiles; prod DB credentials via environment variables. JWT secret via `JWT_SECRET` / `app.jwt.secret`. |
+
+| Topic                    | Assumption                                                                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Style                    | RESTful JSON over HTTP; Spring Boot 3 + Spring Security.                                                                                                           |
+| Persistence              | IndexShelf has no database. UserManagement and BookManagement use PostgreSQL (`book_catalogue`).                                                                   |
+| Validation / errors      | Bean validation on inputs; consistent JSON error body with appropriate HTTP status codes.                                                                          |
+| Environments             | `dev` / `prod` Spring profiles; prod DB credentials via environment variables. JWT secret via `JWT_SECRET` / `app.jwt.secret`.                                     |
 | Containerization / CI/CD | Docker, Docker Compose, and GitHub Actions are implementation choices to demonstrate declarative containerization and CI/CD — not stated in the library API brief. |
 
+
+
+
 ## Run
+
+
 
 ### Option A — Local (Maven)
 
@@ -112,6 +140,8 @@ mvn spring-boot:run
 mvn spring-boot:run -Dspring-boot.run.profiles=prod
 ```
 
+
+
 ### Option B — Docker Compose (app + Postgres)
 
 ```bash
@@ -120,7 +150,7 @@ docker compose up --build
 
 This starts:
 
-- PostgreSQL on port `5432`
+- PostgreSQL on host port `5435` (container still uses `5432`)
 - Library API on port `8080` (`prod` profile)
 
 Stop with `docker compose down` (add `-v` to also remove the DB volume).
@@ -152,23 +182,33 @@ Pull the published image (after a successful push to `main`):
 docker pull ghcr.io/<your-github-username>/indexshelf:latest
 ```
 
+
+
 ### Profiles
 
-| Profile | Config |
-|---------|--------|
-| `dev` (default) | Calls `http://localhost:8081` (BookManagement) and `http://localhost:8082` (UserManagement) |
-| `prod` | Override with `BOOKMANAGEMENT_BASE_URL`, `USERMANAGEMENT_BASE_URL`, `JWT_SECRET` |
 
-| JWT setting | Config |
-|-------------|--------|
-| `app.jwt.secret` / `JWT_SECRET` | Signing key (min 32 characters) |
+| Profile         | Config                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| `dev` (default) | Calls `http://localhost:8081` (BookManagement) and `http://localhost:8082` (UserManagement) |
+| `prod`          | Override with `BOOKMANAGEMENT_BASE_URL`, `USERMANAGEMENT_BASE_URL`, `JWT_SECRET`            |
+
+
+
+| JWT setting                                   | Config                          |
+| --------------------------------------------- | ------------------------------- |
+| `app.jwt.secret` / `JWT_SECRET`               | Signing key (min 32 characters) |
 | `app.jwt.expiration-ms` / `JWT_EXPIRATION_MS` | Token lifetime (default 1 hour) |
+
 
 IndexShelf does not own a database. Start UserManagement and BookManagement first so borrower and book APIs are available.
 
 ---
 
+
+
 ## Auth
+
+
 
 ### Login
 
@@ -203,7 +243,11 @@ Invalid credentials → `401 Unauthorized`.
 
 ---
 
+
+
 ## Borrowers
+
+
 
 ### Register borrower
 
@@ -234,6 +278,8 @@ curl -X POST http://localhost:8080/api/borrowers \
 }
 ```
 
+
+
 ### List borrowers
 
 Not available on IndexShelf. Use UserManagement:
@@ -244,6 +290,8 @@ curl http://localhost:8082/api/borrowers \
 ```
 
 ---
+
+
 
 ## Books
 
@@ -273,6 +321,8 @@ curl "http://localhost:8080/api/books?status=available"
 curl "http://localhost:8080/api/books?status=borrowed"
 ```
 
+
+
 ### Borrow a book
 
 `POST /api/books/borrow` (requires JWT)
@@ -300,6 +350,8 @@ curl -X POST http://localhost:8080/api/books/borrow \
   "libraryId": "LIB-001"
 }
 ```
+
+
 
 ### Return a book
 
@@ -330,6 +382,8 @@ curl -X POST http://localhost:8080/api/books/return \
 
 ---
 
+
+
 ## Typical flow
 
 1. Register a borrower → `POST http://localhost:8080/api/borrowers` (or `POST http://localhost:8082/api/borrowers`)
@@ -342,14 +396,18 @@ curl -X POST http://localhost:8080/api/books/return \
 
 ---
 
+
+
 ## Error responses
 
-| HTTP | When |
-|------|------|
-| `400` | Validation failed, invalid status, bad book file |
-| `401` | Missing/invalid JWT, or bad login credentials |
-| `404` | Borrower or book copy not found |
+
+| HTTP  | When                                                                                           |
+| ----- | ---------------------------------------------------------------------------------------------- |
+| `400` | Validation failed, invalid status, bad book file                                               |
+| `401` | Missing/invalid JWT, or bad login credentials                                                  |
+| `404` | Borrower or book copy not found                                                                |
 | `409` | Duplicate borrower/username/book, book not available, invalid return, concurrent lock conflict |
+
 
 Example:
 
@@ -365,21 +423,30 @@ Validation errors also include `fieldErrors`.
 
 ---
 
+
+
 ## Data model (summary)
 
-| Table | Owner | Fields |
-|-------|--------|--------|
-| `borrowers` | UserManagement | `id` (PK), `library_id` (unique), `name`, `email` |
+
+| Table                  | Owner          | Fields                                                                                                    |
+| ---------------------- | -------------- | --------------------------------------------------------------------------------------------------------- |
+| `borrowers`            | UserManagement | `id` (PK), `library_id` (unique), `name`, `email`                                                         |
 | `borrower_credentials` | UserManagement | `id` (PK), `library_id` (FK → `borrowers`, cascade delete), `username` (unique), `password` (BCrypt hash) |
-| `book_detail` | BookManagement | `isbn`, `title`, `author` |
-| `book_copy` | BookManagement | `id`, `isbn`, `status` (`AVAILABLE` \| `BORROWED`), `library_id` (nullable) |
+| `book_detail`          | BookManagement | `isbn`, `title`, `author`                                                                                 |
+| `book_copy`            | BookManagement | `id`, `isbn`, `status` (`AVAILABLE` | `BORROWED`), `library_id` (nullable)                                |
+
 
 ---
 
+
+
 ## Containerization & CI/CD (declarative)
 
-| File | Purpose |
-|------|---------|
-| `Dockerfile` | Multi-stage build of the Spring Boot JAR into a runtime image |
-| `docker-compose.yml` | Declares app + Postgres services |
-| `.github/workflows/ci.yml` | CI (test/coverage) and CD (publish image to GHCR) |
+
+| File                       | Purpose                                                       |
+| -------------------------- | ------------------------------------------------------------- |
+| `Dockerfile`               | Multi-stage build of the Spring Boot JAR into a runtime image |
+| `docker-compose.yml`       | Declares app + Postgres services                              |
+| `.github/workflows/ci.yml` | CI (test/coverage) and CD (publish image to GHCR)             |
+
+
